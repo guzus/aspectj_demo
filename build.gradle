@@ -1,0 +1,35 @@
+apply plugin: 'java'
+
+dependencies {
+
+    //Dependencies required for aspect compilation
+    ajc "org.aspectj:aspectjtools:$aspectjVersion"
+    aspects "org.springframework:spring-aspects:$springVersion"
+    aspectCompile  "org.springframework:spring-tx:$springVersion"
+    aspectCompile  "org.springframework:spring-orm:$springVersion"
+    aspectCompile  "org.hibernate.javax.persistence:hibernate-jpa-2.1-api:$hibernateJpaVersion"
+
+}
+
+compileJava {
+    sourceCompatibility="1.7"
+    targetCompatibility="1.7"
+    //The following two lines are useful if you have queryDSL if not ignore
+    dependsOn generateQueryDSL
+    source generateQueryDSL.destinationDir
+
+    dependsOn configurations.ajc.getTaskDependencyFromProjectDependency(true, "compileJava")
+
+    doLast{
+        ant.taskdef( resource:"org/aspectj/tools/ant/taskdefs/aspectjTaskdefs.properties", classpath: configurations.ajc.asPath)
+        ant.iajc(source:"1.7", target:"1.7", destDir:sourceSets.main.output.classesDir.absolutePath, maxmem:"512m", fork:"true",
+                aspectPath:configurations.aspects.asPath,
+                sourceRootCopyFilter:"**/.svn/*,**/*.java",classpath:configurations.compile.asPath){
+            sourceroots{
+                sourceSets.main.java.srcDirs.each{
+                    pathelement(location:it.absolutePath)
+                }
+            }
+        }
+    }
+}
